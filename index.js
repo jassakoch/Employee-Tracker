@@ -48,11 +48,12 @@ switch (answers.menu) {
   case "Add a department":
     addDepartment();
     break;
-}
 
-//   case "Add a role":
-//     updateEmployeeRole();
-//     break;
+
+  case "Add a role":
+    addRole();
+    break;
+}
 
 //   case "Add an employee role":
 //     addEmployeeRole();
@@ -127,6 +128,73 @@ async function addDepartment() {
     promptManager();
   });
 }
+
+// Function to add a role
+async function addRole() {
+  // Get department choices for user prompt
+  const departmentChoices = await getDepartmentChoices();
+
+  const answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "newRoleTitle",
+      message: "What is the title of the new role?",
+      validate: function (input) {
+        return input !== '';
+      }
+    },
+    {
+      type: "input",
+      name: "newRoleSalary",
+      message: "What is the salary for the new role?",
+      validate: function (input) {
+        return !isNaN(input) && parseFloat(input) >= 0;
+      }
+    },
+    {
+      type: "list",
+      name: "newRoleDepartment",
+      message: "Which department does the new role belong to?",
+      choices: departmentChoices
+    }
+  ]);
+
+  const newRoleTitle = answers.newRoleTitle;
+  const newRoleSalary = parseFloat(answers.newRoleSalary);
+  const newRoleDepartmentId = departmentChoices.find(department => department.name === answers.newRoleDepartment).id;
+  const selectedDepartment = departmentChoices.find(dep => dep.name === answers.newRoleDepartment);
+
+  if (!selectedDepartment) {
+    console.log("Error: Selected department not found.");
+    promptManager();
+    return;
+  }
+  
+
+
+  // Insert the new role into the 'role' table
+  db.query(
+    `INSERT INTO role (title, salary, department_id) VALUES (?, ?, ?)`,
+    [newRoleTitle, newRoleSalary, newRoleDepartmentId],
+    (err, result) => {
+      if (err) throw err;
+      console.log(`${result.affectedRows} role inserted!\n`);
+      promptManager();
+    }
+  );
+}
+
+// Helper function to retrieve department choices for user prompt
+function getDepartmentChoices() {
+  return new Promise((resolve, reject) => {
+    db.query(`SELECT id, name FROM department`, (err, result) => {
+      if (err) reject(err);
+      const departmentChoices = result.map(dep => ({ id: dep.id, name: dep.name }));
+      resolve(departmentChoices);
+    });
+  });
+}
+
 
 };
 promptManager();
