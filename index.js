@@ -44,10 +44,11 @@ switch (answers.menu) {
   case "View all employees":
     viewEmployeeTable();
     break;
+
+  case "Add a department":
+    addDepartment();
+    break;
 }
-//   case "Add a department":
-//     addDepartment();
-//     break;
 
 //   case "Add a role":
 //     updateEmployeeRole();
@@ -100,6 +101,29 @@ LEFT JOIN employee AS manager ON employee.manager_id = manager.id
 ORDER BY employee.id`, (err, result) => {
     if (err) throw err
     console.table (result)
+    promptManager();
+  });
+}
+
+// Function to add a department
+async function addDepartment() {
+  const answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "newDepartment",
+      message: "What is the new department?",
+      validate: function (input) {
+        // Validate that the input is not empty
+        return input !== '';
+      }
+    }
+  ]);
+
+  const newDepartmentName = answers.newDepartment;
+
+  db.query(`INSERT INTO department (name) VALUES (?)`, [newDepartmentName], (err, result) => {
+    if (err) throw err;
+    console.table(result);
     promptManager();
   });
 }
