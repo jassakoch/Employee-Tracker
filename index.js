@@ -3,64 +3,74 @@ const inquirer = require("inquirer");
 
 //Establashing connection to the database employees_db
 const db = mysql.createConnection(
-    {
-        host: 'localhost',
-        user: 'root',
-        password: 'pass',
-        database: 'employees_db'
-    },
-    console.log("Connection established to employees_db")
+  {
+    host: 'localhost',
+    user: 'root',
+    password: 'pass',
+    database: 'employees_db'
+  },
+  console.log("Connection established to employees_db")
 );
+
+//Declare roleChoices and managerChoices for inserting prompts
+let roleChoices;
+let managerChoices;
+
+
+
 
 //Prompts for the user menu
 async function promptManager() {
-    const answers = await inquirer.prompt([
-      {
-        type: "list",
-        name: "menu",
-        message: "What would you like to do?",
-        choices: [
-          "View all departments",
-          "View all roles",
-          "View all employees",
-          "Add a department",
-          "Add a role",
-          "Add an employee",
-          "Update an employee role"
-        ]
-      }
-    ])
-    console.log(answers);
+  const answers = await inquirer.prompt([
 
 
-//Switch statement to handle diffent menu options
-switch (answers.menu) {
-  case "View all departments":
-    viewDepartmentTable();
-    break;
+    {
+      type: "list",
+      name: "menu",
+      message: "What would you like to do?",
+      choices: [
+        "View all departments",
+        "View all roles",
+        "View all employees",
+        "Add a department",
+        "Add a role",
+        "Add an employee",
+        "Update an employee role"
+      ]
+    }
+  ]);
+  console.log(answers);
 
-  case "View all roles":
-    viewRoleTable();
-    break;
 
-  case "View all employees":
-    viewEmployeeTable();
-    break;
+  //Switch statement to handle diffent menu options
+  switch (answers.menu) {
+    case "View all departments":
+      viewDepartmentTable();
+      break;
 
-  case "Add a department":
-    addDepartment();
-    break;
+    case "View all roles":
+      viewRoleTable();
+      break;
+
+    case "View all employees":
+      viewEmployeeTable();
+      break;
+
+    case "Add a department":
+      addDepartment();
+      break;
 
 
-  case "Add a role":
-    addRole();
-    break;
+    case "Add a role":
+      addRole();
+      break;
+
+
+    case "Add an employee":
+      addEmployee();
+      break;
+  }
 }
-
-//   case "Add an employee role":
-//     addEmployeeRole();
-//     break;
-
 //   case "End":
 //     connection.end();
 //     break;
@@ -71,7 +81,7 @@ function viewDepartmentTable() {
   console.log("Viewing department table\n");
   db.query(`SELECT * FROM department`, (err, result) => {
     if (err) throw err
-    console.table (result)
+    console.table(result)
     promptManager();
   });
 }
@@ -81,7 +91,7 @@ function viewRoleTable() {
   console.log("Viewing Employee Role Table\n");
   db.query(`select role.id,role.title,role.salary,department.name from role join department on role.department_id=department.id`, (err, result) => {
     if (err) throw err
-    console.table (result)
+    console.table(result)
     promptManager();
   });
 }
@@ -103,7 +113,7 @@ LEFT JOIN department ON role.department_id = department.id
 LEFT JOIN employee AS manager ON employee.manager_id = manager.id
 ORDER BY employee.id`, (err, result) => {
     if (err) throw err
-    console.table (result)
+    console.table(result)
     promptManager();
   });
 }
@@ -172,7 +182,7 @@ async function addRole() {
     promptManager();
     return;
   }
-  
+
 
 
   // Insert the new role into the 'role' table
@@ -199,7 +209,102 @@ function getDepartmentChoices() {
 }
 
 //Function for adding an employee
+async function addEmployee() {
 
-};
+  //initializing roleChoices and managerChoices
+  const roleChoices = await getRoleChoices();
+  const managerChoices = await getManagerChoices();
+
+  // Get emmployee choices for user prompt
+  const employeeChoices = await getEmployeeChoices();
+
+  const answers = await inquirer.prompt([
+    {
+      type: "input",
+      name: "newFirstName",
+      message: "What is the first name of the new employee?",
+      validate: function (input) {
+        return input !== '';
+      }
+    },
+    {
+      type: "input",
+      name: "newLastName",
+      message: "What is the last name of the new employee?",
+      validate: function (input) {
+        return input !== '';
+      }
+    },
+    {
+      type: "list",
+      name: "newRoleEmployee",
+      message: "What role does the new employee have?",
+      choices: roleChoices.map(role => role.title)
+    },
+    {
+      type: "list",
+      name: "newManager",
+      message: "Who is the manager of the new employee?",
+      choices: managerChoices.map(manager=> manager.name)
+    }
+  ]);
+
+  const newFirstName = answers.newFirstName;
+  const newLastName = answers.newLastName;
+  const newRoleEmployeeId = roleChoices.find(role => role.title === answers.newRoleEmployee).id;
+  const newManagerId = managerChoices.find(manager => manager.name === answers.newManager).id;
+
+  // Insert the new employee into the 'employee' table
+
+  db.query(
+    `INSERT INTO employee (first_name, last_name, role_id, manager_id) VALUES (?, ?, ?, ?)`,
+    [newFirstName, newLastName, newRoleEmployeeId, newManagerId],
+    (err, result) => {
+      if (err) throw err;
+      console.log(`${result.affectedRows} employee inserted!\n`);
+      promptManager();
+    }
+  );
+}
+
+// Helper function to retrieve role choices for user prompt
+function getEmployeeChoices() {
+  return new Promise((resolve, reject) => {
+    db.query(`SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee`, (err, result) => {
+      if (err) reject(err);
+      const employeeChoices = result.map(emp => ({ id: emp.id, name: emp.name }));
+      resolve(employeeChoices);
+    });
+  });
+}
+
+// Helper function to retrieve role choices for user prompt
+function getRoleChoices() {
+  return new Promise((resolve, reject) => {
+    db.query(`SELECT id, title FROM role`, (err, result) => {
+      if (err) reject(err);
+      roleChoices = result.map(role => ({ id: role.id, title: role.title }));
+      resolve(roleChoices);
+    });
+  });
+}
+
+// Helper function to retrieve manager choices for user prompt
+function getManagerChoices() {
+  return new Promise((resolve, reject) => {
+    db.query(`SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee WHERE manager_id IS NULL`, (err, result) => {
+      if (err) reject(err);
+      managerChoices = result.map(manager => ({ id: manager.id, name: manager.name }));
+      resolve(managerChoices);
+    });
+  });
+}
+
+
+
+
+
+
+
 promptManager();
 
