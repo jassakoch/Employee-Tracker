@@ -17,8 +17,6 @@ let roleChoices;
 let managerChoices;
 
 
-
-
 //Prompts for the user menu
 async function promptManager() {
   const answers = await inquirer.prompt([
@@ -69,13 +67,16 @@ async function promptManager() {
     case "Add an employee":
       addEmployee();
       break;
-  }
-}
-//   case "End":
-//     connection.end();
-//     break;
-// };
+     
+   case "Update an employee role":
+        updateEmployeeRole();
+        break; 
 
+  case "End":
+    connection.end();
+    break;
+};
+}
 //Function to view the department table
 function viewDepartmentTable() {
   console.log("Viewing department table\n");
@@ -267,12 +268,17 @@ async function addEmployee() {
   );
 }
 
-// Helper function to retrieve role choices for user prompt
+// Helper function to retrieve employee choices for user prompt
 function getEmployeeChoices() {
   return new Promise((resolve, reject) => {
-    db.query(`SELECT id, CONCAT(first_name, ' ', last_name) AS name FROM employee`, (err, result) => {
+    db.query(`SELECT id, first_name, last_name FROM employee`, (err, result) => {
       if (err) reject(err);
-      const employeeChoices = result.map(emp => ({ id: emp.id, name: emp.name }));
+      const employeeChoices = result.map(emp => ({
+        id: emp.id,
+        first_name: emp.first_name,
+        last_name: emp.last_name,
+        name: `${emp.first_name} ${emp.last_name}`
+      }));
       resolve(employeeChoices);
     });
   });
@@ -300,8 +306,49 @@ function getManagerChoices() {
   });
 }
 
+//Function to update current employee role
+async function updateEmployeeRole() {
+      // Get employee choices for user prompt
+      const employeeChoices = await getEmployeeChoices();
+      console.log("Before getRoleChoices");
+const roleChoices = await getRoleChoices();
+console.log("After, getRoleChoices", roleChoices);
+      const answers = await inquirer.prompt([
+          {
+              type: "list",
+              name: "employeeToUpdate",
+              message: "Select an employee to update:",
+              choices: employeeChoices.map(employee => ({
+                  name: `${employee.first_name} ${employee.last_name}`,
+                  value: employee.id
+              }))
+          },
+          {
+              type: "list",
+              name: "newRole",
+              message: "Select the new role for the employee:",
+              choices: roleChoices.map(role => role.title)
+          }
+      ]);
+  
+      const employeeIdToUpdate = answers.employeeToUpdate;
+      const newRoleTitle = answers.newRole;
+//Get the role id based on the selected role title
+const newRoleId = roleChoices.find(role => role.title ===newRoleTitle).id
 
-
+  
+      // Update the employee's role in the database
+      db.query(
+          "UPDATE employee SET role_id = ? WHERE id = ?",
+          [newRoleId, employeeIdToUpdate],
+          (err, result) => {
+              if (err) throw err;
+              console.log(`${result.affectedRows} employee role updated!\n`);
+              // Call the main prompt function or do any other necessary actions
+              promptManager();
+          }
+      );
+  }
 
 
 
