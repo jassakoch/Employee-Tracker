@@ -1,3 +1,13 @@
+console.log(`
+╔═══╗─────╔╗──────────────╔═╗╔═╗
+║╔══╝─────║║──────────────║║╚╝║║
+║╚══╦╗╔╦══╣║╔══╦╗─╔╦══╦══╗║╔╗╔╗╠══╦═╗╔══╦══╦══╦═╗
+║╔══╣╚╝║╔╗║║║╔╗║║─║║║═╣║═╣║║║║║║╔╗║╔╗╣╔╗║╔╗║║═╣╔╝
+║╚══╣║║║╚╝║╚╣╚╝║╚═╝║║═╣║═╣║║║║║║╔╗║║║║╔╗║╚╝║║═╣║
+╚═══╩╩╩╣╔═╩═╩══╩═╗╔╩══╩══╝╚╝╚╝╚╩╝╚╩╝╚╩╝╚╩═╗╠══╩╝
+───────║║──────╔═╝║─────────────────────╔═╝║
+───────╚╝──────╚══╝─────────────────────╚══╝`);
+
 const mysql = require('mysql2');
 const inquirer = require("inquirer");
 
@@ -9,7 +19,9 @@ const db = mysql.createConnection(
     password: 'pass',
     database: 'employees_db'
   },
+  
   console.log("Connection established to employees_db")
+
 );
 
 //Declare roleChoices and managerChoices for inserting prompts
@@ -310,10 +322,9 @@ function getManagerChoices() {
 async function updateEmployeeRole() {
       // Get employee choices for user prompt
       const employeeChoices = await getEmployeeChoices();
-      console.log("Before getRoleChoices");
 const roleChoices = await getRoleChoices();
-console.log("After, getRoleChoices", roleChoices);
-      const answers = await inquirer.prompt([
+
+const answers = await inquirer.prompt([
           {
               type: "list",
               name: "employeeToUpdate",
@@ -349,9 +360,6 @@ const newRoleId = roleChoices.find(role => role.title ===newRoleTitle).id
           }
       );
   }
-
-
-
 
 promptManager();
 
